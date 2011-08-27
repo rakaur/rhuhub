@@ -14,12 +14,17 @@ def get_issues(type = :open)
   Hashie::Mash.new(JSON(b)).issues
 end
 
+def minify(url)
+  encoded = url.gsub(':','%3B').gsub('#', '%23')
+  open("http://is.gd/api.php?longurl=#{encoded}") { |f| f.read }
+end
+
 def announce_issues(issues)
     issues.each do |issue|
         number = issue.number
         title  = issue.title
         user   = issue.user
-        url    = issue.html_url
+        url    = minify(issue.html_url)
         state  = issue.state
         labels = "[#{issue.labels.join(', ')}]"
 
