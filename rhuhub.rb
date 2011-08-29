@@ -1,22 +1,23 @@
 require 'rubygems'
 require 'open-uri'
 require 'json'
+require 'cgi'
 
 require 'rhuidean'
 require 'hashie'
 
 def curl(url)
-  open(url) { |f| f.read }
+    open(url) { |f| f.read }
 end
 
 def get_issues(type = :open)
-  b = curl("http://github.com/api/v2/json/issues/list/malkier/kythera/#{type}")
-  Hashie::Mash.new(JSON(b)).issues
+    url = "http://github.com/api/v2/json/issues/list/malkier/kythera/#{type}"
+
+    Hashie::Mash.new(JSON(curl(url))).issues
 end
 
-def minify(url)
-  encoded = url.gsub(':','%3B').gsub('#', '%23')
-  open("http://is.gd/api.php?longurl=#{encoded}") { |f| f.read }
+def minify(longurl)
+    curl("http://is.gd/create.php?format=simple&url=#{CGI.escape(longurl)}")
 end
 
 def announce_issues(issues)
