@@ -122,7 +122,7 @@ def server_loop
     when 'ci:success'
         str = "CI: commit #{tokens[1]} succeeded: #{tokens[2 ... -3].join(' ')} (#{tokens[-2].to_i.round}s)"
     when 'ci:failure'
-        str = "CI: commit #{tokens[1]} failed: #{tokens[2 ... -3].join(' ')} (#{tokens[-2].to_i.round}s) - http://bit.ly/oVGs9U"
+        str = "CI: commit #{tokens[1]} failed: #{tokens[2 ... -3].join(' ')} (#{tokens[-2].to_i.round}s) - http://is.gd/qAPyRb"
     when 'rakaur:say'
         str = tokens[1 .. -1].join(' ')
     else
