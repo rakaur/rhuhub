@@ -230,7 +230,7 @@ def server_loop
     end
 
     # Only report on the latest commit
-    return unless $branch == 'develop'
+    return unless $branch == 'develop' or $branch == 'master'
 
     # OK, now send the read bytes to IRC
     $clients.each do |client|
