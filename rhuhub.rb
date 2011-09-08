@@ -78,6 +78,11 @@ $clients.each do |client|
     end
 end
 
+# Op everyone on the testnet
+$clients[1].on(:JOIN) do |m|
+    m.client.mode('#malkier', "+o #{m.origin_nick}") if m.target == '#malkier'
+end
+
 # Keep track of open and closed issues
 $open_issues   = get_issues :open
 $closed_issues = get_issues :closed
