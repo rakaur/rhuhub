@@ -75,7 +75,7 @@ def announce_commits(info)
             strfiles = strdirs = nil
         else
             # Just report number of files and dirs
-            dirs  = changed.grep(/\//)
+            dirs  = changed.grep(/\//).uniq
             files = changed - dirs
 
             dirs  = dirs.length  + 1
