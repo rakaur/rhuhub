@@ -40,7 +40,7 @@ def announce_issues(issues)
             str = "##{number} (#{state}): #{title} #{labels} - #{url}"
         end
 
-        $client.privmsg('#malkier', str)
+        $clients.each { |client| client.privmsg('#malkier', str) }
     end
 end
 
@@ -48,8 +48,10 @@ end
 # app #
 #######
 
+$clients = []
+
 # Make our IRC client
-$client = IRC::Client.new do |c|
+$clients << IRC::Client.new do |c|
     c.nickname  = 'kythera'
     c.username  = 'rhuidean'
     c.realname  = "a facet of someone else's imagination"
@@ -59,9 +61,21 @@ $client = IRC::Client.new do |c|
     c.log_level = :info
 end
 
+$clients << IRC::Client.new do |c|
+    c.nickname  = 'kythera'
+    c.username  = 'rhuidean'
+    c.realname  = "a facet of someone else's imagination"
+    c.server    = 'moridin.ericw.org'
+    c.port      = 6699
+    c.logger    = Logger.new($stdout)
+    c.log_level = :info
+end
+
 # Join channels on connect
-$client.on(IRC::Numeric::RPL_ENDOFMOTD) do |m|
-    $client.join('#malkier')
+$clients.each do |client|
+    client.on(IRC::Numeric::RPL_ENDOFMOTD) do |m|
+        client.join('#malkier')
+    end
 end
 
 # Keep track of open and closed issues
@@ -130,11 +144,13 @@ def server_loop
     end
 
     # OK, now send the read bytes to IRC
-    begin
-        $client.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
-    rescue IO::WaitWritable
-        IO.select([], [$client.socket])
-        retry
+    $clients.each do |client|
+        begin
+            client.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
+        rescue IO::WaitWritable
+            IO.select([], [client.socket])
+            retry
+        end
     end
 end
 
@@ -143,10 +159,10 @@ end
 ###########
 
 # Start the IRC client
-$client.thread = Thread.new { $client.io_loop }
+$clients.each { |client| client.thread = Thread.new { client.io_loop } }
 
 # Poll our TCP server
-server_thread  = Thread.new { loop { server_loop } }
+server_thread = Thread.new { loop { server_loop } }
 
 server_thread.join
-$client.thread.join
+$clients.each { |client| client.thread.join }
