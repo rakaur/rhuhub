@@ -5,11 +5,15 @@ require 'cgi'
 require 'socket'
 
 require 'rhuidean'
+require 'sinatra/base'
 require 'hashie'
 
 #############
 # functions #
 #############
+
+TCP_PORT  = 3456
+HTTP_PORT = 6543
 
 def curl(url)
     open(url) { |f| f.read }
@@ -41,6 +45,63 @@ def announce_issues(issues)
         end
 
         $clients.each { |client| client.privmsg('#malkier', str) }
+    end
+end
+
+def announce_commits(info)
+    # Grab the branch name
+    branch = info.ref.split('/')[-1]
+
+    # Go over each commit and report it
+    info.commits.each do |commit|
+        # Gather some info to report
+        url     = minify(commit.url)
+        author  = commit.author.username
+        sha1    = commit.id[0 ... 7]
+        message = commit.message.split("\n")[0]
+
+        # Gather info about the files changed
+        changed  = []
+        changed += commit.modified if commit.modified
+        changed += commit.added    if commit.added
+        changed += commit.removed  if commit.removed
+
+        if changed.length == 1
+            # If just one file was changed, list the filename
+            files = changed[0]
+
+            strfiles = strdirs = nil
+        else
+            # Just report number of files and dirs
+            dirs  = changed.grep(/\//)
+            files = changed - dirs
+
+            dirs  = dirs.length  + 1
+            files = files.length + 1
+
+            strfiles = "file%s" % [files > 1 ? 's' : '']
+            strdirs  = "dir%s"  % [dirs  > 1 ? 's' : '']
+        end
+
+        # Build the string to send to IRC
+        str  = "commit \002#{sha1}\002: \0033#{author}\003 * \0037#{branch}\003"
+
+        if strfiles and strdirs
+            str += " / (#{files} #{strfiles} in #{dirs} #{strdirs}): "
+        else
+            str += " / #{files}\002:\002 "
+        end
+
+        str += "#{message} - #{url}"
+
+        $clients.each do |client|
+            begin
+                client.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
+            rescue IO::WaitWritable
+                IO.select([], [client.socket])
+                retry
+            end
+        end
     end
 end
 
@@ -106,9 +167,13 @@ IRC::Timer.every(60) do
     $closed_issues = issues
 end
 
+#######
+# tcp #
+#######
+
 # Make our TCP server
 begin
-    $server = TCPServer.new('0.0.0.0', 3456)
+    $server = TCPServer.new('0.0.0.0', TCP_PORT)
 rescue Exception => err
     puts "Couldn't open TCP socket: #{err}"
     abort
@@ -130,21 +195,32 @@ def server_loop
         IO.select([sock])
         retry
     else
+        data.chomp!
+        addr = sock.peeraddr[-1]
         sock.close
     end
 
     # Tokenize
     str    = nil
-    tokens = data.chomp.split(' ')
+    tokens = data.split(' ')
 
     case tokens[0]
     when 'ci:success'
-        str = "CI: commit #{tokens[1]} succeeded: #{tokens[2 ... -3].join(' ')} (#{tokens[-2].to_i.round}s)"
+        str  = "commit \002#{tokens[1]}\002 \0033succeeded\003: "
+        str += "#{tokens[2 ... -3].join(' ')} (#{tokens[-2].to_i.round}s)"
     when 'ci:failure'
-        str = "CI: commit #{tokens[1]} failed: #{tokens[2 ... -3].join(' ')} (#{tokens[-2].to_i.round}s) - http://is.gd/qAPyRb"
+        str  = "commit \002#{tokens[1]}\002 \0034failed\003: "
+        str += "#{tokens[2 ... -3].join(' ')} (#{tokens[-2].to_i.round}s) "
+        str += "- http://is.gd/qAPyRb"
     when 'rakaur:say'
         str = tokens[1 .. -1].join(' ')
+    when 'rakaur:die'
+        return unless addr == '127.0.0.1'
+        $clients.each { |client| client.thread.kill }
+        $server_thread.kill
+        $httpd_thread.kill
     else
+        p data
         return
     end
 
@@ -159,6 +235,18 @@ def server_loop
     end
 end
 
+#########
+# httpd #
+#########
+
+class HTTPd < Sinatra::Base
+    set :port, HTTP_PORT
+    post '/' do
+        push = Hashie::Mash.new(JSON(params[:payload]))
+        announce_commits(push) if push.repository.name == 'kythera'
+    end
+end
+
 ###########
 # threads #
 ###########
@@ -167,7 +255,7 @@ end
 $clients.each { |client| client.thread = Thread.new { client.io_loop } }
 
 # Poll our TCP server
-server_thread = Thread.new { loop { server_loop } }
+$server_thread = Thread.new { loop { server_loop } }
 
-server_thread.join
-$clients.each { |client| client.thread.join }
+# Start the HTTPd in the main thread
+HTTPd.run!
