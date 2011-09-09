@@ -69,6 +69,7 @@ def announce_commits(info)
         changed += commit.removed  if commit.removed
 
         dirs = files = []
+        sep  = File::SEPARATOR
 
         if changed.length == 1
             # If just one file was changed, list the filename
@@ -78,15 +79,14 @@ def announce_commits(info)
         else
             # Just report number of files and dirs
             dirs     = changed.grep(/\//)
-            dirfiles = dirs.collect { |dir| dir.split('/')[-1] }
+            dirfiles = dirs.collect { |dir| dir.split(sep)[-1] }
             files    = changed - dirs
             files   += dirfiles
 
             # Whittle out duplicates
-            sep = File::SEPARATOR
-            dirs.collect! { |fp| fp.split(sep)[0 ... -1].join(sep) }.uniq
+            dirs.collect! { |fp| fp.split(sep)[0 ... -1].join(sep) }.uniq!
 
-            dirs  = dirs.length > 0 ? dirs.length : 1
+            dirs  = dirs.length
             files = files.length
 
             strfiles = "file%s" % [files > 1 ? 's' : '']
