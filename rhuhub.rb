@@ -91,7 +91,7 @@ def announce_commits(info)
         if strfiles and strdirs
             str += " / (#{files} #{strfiles} in #{dirs} #{strdirs}): "
         else
-            str += " / #{files}\002:\002 "
+            str += " / #{files}: "
         end
 
         str += "#{message} - #{url}"
