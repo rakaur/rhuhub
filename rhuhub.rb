@@ -75,8 +75,12 @@ def announce_commits(info)
             strfiles = strdirs = nil
         else
             # Just report number of files and dirs
-            dirs  = changed.grep(/\//).uniq
+            dirs  = changed.grep(/\//)
             files = changed - dirs
+
+            # Whittle out duplicates
+            sep = File::SEPARATOR
+            dirs.collect! { |fp| fp.split(sep)[0 ... -1].join(sep) }.uniq
 
             dirs  = dirs.length  + 1
             files = files.length + 1
