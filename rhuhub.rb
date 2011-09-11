@@ -50,7 +50,7 @@ end
 
 def announce_commits(info)
     # Grab the branch name
-    branch = info.ref.split('/')[-1]
+    branch = info.ref.split('/', 3)[-1]
 
     $branch = branch
 
