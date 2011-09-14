@@ -55,7 +55,7 @@ def announce_commits(info)
     $branch = branch
 
     numcommits = info.commits.length
-    commits    = info.commits[0 ... 3] if numcommits > 3
+    commits    = info.commits[0 ... 3]
 
     numcommits -= 3
 
