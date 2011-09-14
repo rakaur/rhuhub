@@ -54,8 +54,13 @@ def announce_commits(info)
 
     $branch = branch
 
+    numcommits = info.commits.length
+    commits    = info.commits[0 ... 3] if numcommits > 3
+
+    numcommits -= 3
+
     # Go over each commit and report it
-    info.commits.each do |commit|
+    commits.each do |commit|
         # Gather some info to report
         url     = minify(commit.url)
         author  = commit.author.username
@@ -104,6 +109,20 @@ def announce_commits(info)
         end
 
         str += "#{message} - #{url}"
+
+        $clients.each do |client|
+            begin
+                client.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
+            rescue IO::WaitWritable
+                IO.select([], [client.socket])
+                retry
+            end
+        end
+    end
+
+    if numcommits > 0
+        url = 'http://github.com/malkier/kythera/commits'
+        str = "... and #{numcommits} more commits: #{url}"
 
         $clients.each do |client|
             begin
