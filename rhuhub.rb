@@ -52,8 +52,6 @@ def announce_commits(info)
     # Grab the branch name
     branch = info.ref.split('/', 3)[-1]
 
-    $branch = branch
-
     numcommits = info.commits.length
     commits    = info.commits[0 ... 3]
 
@@ -178,11 +176,8 @@ end
 $open_issues   = get_issues :open
 $closed_issues = get_issues :closed
 
-# Only report when the commit is on the develop branch
-$branch = nil
-
 # This is the timer to monitor issues
-IRC::Timer.every(60) do
+IRC::Timer.every(300) do
     issues = get_issues
     new_issues = issues - $open_issues
 
@@ -191,7 +186,7 @@ IRC::Timer.every(60) do
     $open_issues = issues
 end
 
-IRC::Timer.every(60) do
+IRC::Timer.every(300) do
     issues = get_issues(:closed)
     new_issues = issues - $closed_issues
 
@@ -256,9 +251,6 @@ def server_loop
         p data
         return
     end
-
-    # Only report on the latest commit
-    return if $branch and $branch != 'develop' and $branch != 'master'
 
     # OK, now send the read bytes to IRC
     $clients.each do |client|
