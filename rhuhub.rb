@@ -44,7 +44,8 @@ def announce_issues(issues)
             str = "##{number} (#{state}): #{title} #{labels} - #{url}"
         end
 
-        $clients.each { |client| client.privmsg('#malkier', str) }
+        $client1.privmsg('#malkier', str)
+        $client2.privmsg('#kythera', str)
     end
 end
 
@@ -108,13 +109,18 @@ def announce_commits(info)
 
         str += "#{message} - #{url}"
 
-        $clients.each do |client|
-            begin
-                client.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
-            rescue IO::WaitWritable
-                IO.select([], [client.socket])
-                retry
-            end
+        begin
+            $client1.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
+        rescue IO::WaitWritable
+            IO.select([], [$client1.socket])
+            retry
+        end
+
+        begin
+            $client2.socket.write_nonblock("PRIVMSG #kythera :#{str}\r\n")
+        rescue IO::WaitWritable
+            IO.select([], [$client2.socket])
+            retry
         end
     end
 
@@ -122,13 +128,18 @@ def announce_commits(info)
         url = 'http://github.com/malkier/kythera/commits'
         str = "... and #{numcommits} more commits: #{url}"
 
-        $clients.each do |client|
-            begin
-                client.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
-            rescue IO::WaitWritable
-                IO.select([], [client.socket])
-                retry
-            end
+        begin
+            $client1.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
+        rescue IO::WaitWritable
+            IO.select([], [$client1.socket])
+            retry
+        end
+
+        begin
+            $client2.socket.write_nonblock("PRIVMSG #kythera :#{str}\r\n")
+        rescue IO::WaitWritable
+            IO.select([], [$client2.socket])
+            retry
         end
     end
 end
@@ -137,10 +148,8 @@ end
 # app #
 #######
 
-$clients = []
-
 # Make our IRC client
-$clients << IRC::Client.new do |c|
+$client1 << IRC::Client.new do |c|
     c.nickname  = 'kythera'
     c.username  = 'rhuidean'
     c.realname  = "a facet of someone else's imagination"
@@ -150,27 +159,19 @@ $clients << IRC::Client.new do |c|
     c.log_level = :info
 end
 
-$clients << IRC::Client.new do |c|
+$client2 << IRC::Client.new do |c|
     c.nickname  = 'kythera'
     c.username  = 'rhuidean'
     c.realname  = "a facet of someone else's imagination"
-    c.server    = 'moridin.ericw.org'
-    c.port      = 6699
+    c.server    = 'irc.freenode.org'
+    c.port      = 6667
     c.logger    = Logger.new($stdout)
     c.log_level = :info
 end
 
 # Join channels on connect
-$clients.each do |client|
-    client.on(IRC::Numeric::RPL_ENDOFMOTD) do |m|
-        client.join('#malkier')
-    end
-end
-
-# Op everyone on the testnet
-$clients[1].on(:JOIN) do |m|
-    m.client.mode('#malkier', "+o #{m.origin_nick}") if m.target == '#malkier'
-end
+$client1.on(IRC::Numeric::RPL_ENDOFMOTD) { $client1.join('#malkier') }
+$client2.on(IRC::Numeric::RPL_ENDOFMOTD) { $client2.join('#kythera') }
 
 # Keep track of open and closed issues
 $open_issues   = get_issues :open
@@ -253,13 +254,18 @@ def server_loop
     end
 
     # OK, now send the read bytes to IRC
-    $clients.each do |client|
-        begin
-            client.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
-        rescue IO::WaitWritable
-            IO.select([], [client.socket])
-            retry
-        end
+    begin
+        $client1.socket.write_nonblock("PRIVMSG #malkier :#{str}\r\n")
+    rescue IO::WaitWritable
+        IO.select([], [$client1.socket])
+        retry
+    end
+
+    begin
+        $client2.socket.write_nonblock("PRIVMSG #kythera :#{str}\r\n")
+    rescue IO::WaitWritable
+        IO.select([], [$client2.socket])
+        retry
     end
 end
 
