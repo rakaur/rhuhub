@@ -149,7 +149,7 @@ end
 #######
 
 # Make our IRC client
-$client1 << IRC::Client.new do |c|
+$client1 = IRC::Client.new do |c|
     c.nickname  = 'kythera'
     c.username  = 'rhuidean'
     c.realname  = "a facet of someone else's imagination"
@@ -159,15 +159,18 @@ $client1 << IRC::Client.new do |c|
     c.log_level = :info
 end
 
-$client2 << IRC::Client.new do |c|
+$client2 = IRC::Client.new do |c|
     c.nickname  = 'kythera'
     c.username  = 'rhuidean'
     c.realname  = "a facet of someone else's imagination"
     c.server    = 'irc.freenode.org'
     c.port      = 6667
+    c.bind_to   = '2607:fcd0:1337:a6::a2'
     c.logger    = Logger.new($stdout)
     c.log_level = :info
 end
+
+$clients = [$client1, $client2]
 
 # Join channels on connect
 $client1.on(IRC::Numeric::RPL_ENDOFMOTD) { $client1.join('#malkier') }
