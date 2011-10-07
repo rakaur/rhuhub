@@ -155,6 +155,7 @@ $client1 = IRC::Client.new do |c|
     c.realname  = "a facet of someone else's imagination"
     c.server    = 'moridin.ericw.org'
     c.port      = 6667
+    c.bind_to   = '2607:fcd0:1337:a6::a2'
     c.logger    = Logger.new($stdout)
     c.log_level = :info
 end
