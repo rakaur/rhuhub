@@ -20,9 +20,9 @@ def curl(url)
 end
 
 def get_issues(type = :open)
-    url = "http://github.com/api/v2/json/issues/list/malkier/kythera/#{type}"
+    url = "https://api.github.com/repos/malkier/kythera/issues?state=#{type}"
 
-    Hashie::Mash.new(JSON(curl(url))).issues
+    JSON(curl(url))
 end
 
 def minify(longurl)
@@ -153,9 +153,9 @@ $client1 = IRC::Client.new do |c|
     c.nickname  = 'kythera'
     c.username  = 'rhuidean'
     c.realname  = "a facet of someone else's imagination"
-    c.server    = 'moridin.ericw.org'
+    c.server    = 'irc.malkier.net'
     c.port      = 6667
-    c.bind_to   = '2607:fcd0:1337:a6::a2'
+    #c.bind_to   = '2607:fcd0:1337:a6::a2'
     c.logger    = Logger.new($stdout)
     c.log_level = :info
 end
@@ -166,7 +166,7 @@ $client2 = IRC::Client.new do |c|
     c.realname  = "a facet of someone else's imagination"
     c.server    = 'irc.freenode.org'
     c.port      = 6667
-    c.bind_to   = '2607:fcd0:1337:a6::a2'
+    #c.bind_to   = '2607:fcd0:1337:a6::a2'
     c.logger    = Logger.new($stdout)
     c.log_level = :info
 end
